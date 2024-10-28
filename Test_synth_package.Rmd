@@ -1,0 +1,131 @@
+---
+title: "Test_synth_package"
+author: "Léonie"
+date: "2024-10-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(Synth)
+
+```
+
+```{r}
+data("basque")
+```
+
+
+Economic effects of conflicts: 
+```{r}
+dataprep.out <- dataprep(foo = basque, predictors = c("school.illit", "school.prim", "school.med", "school.high", "school.post.high", "invest"), predictors.op = "mean", time.predictors.prior = 1964:1969, special.predictors = list( list("gdpcap", 1960:1969 , "mean"), list("sec.agriculture", seq(1961, 1969, 2), "mean")#available data for predictors before treatments (every year from 1960 to 1969 or every two years from 1961 to 1969)
+                                                                                                                                                                                                                                       , list("sec.energy", seq(1961, 1969, 2), "mean"), list("sec.industry", seq(1961, 1969, 2), "mean"),  list("sec.construction", seq(1961, 1969, 2), "mean"), list("sec.services.venta", seq(1961, 1969, 2), "mean"), list("sec.services.nonventa", seq(1961, 1969, 2), "mean"), list("popdens", 1969, "mean")), dependent = "gdpcap", unit.variable = "regionno", unit.names.variable = "regionname", time.variable = "year", treatment.identifier = 17,  controls.identifier = c(2:16, 18),  time.optimize.ssr = 1960:1969, time.plot = 1955:1997)
+```
+
+
+dataprep.out <- dataprep(foo = data, predictors = c("environment", "roads (binary)"...), predictors.op = "mean", time.predictors.prior = to define, dependent = "productivity", unit.variable = "RHC_number", unit.names.variable = "RHC name", time.variable = "year", treatment.identifier = number of the treatment,  controls.identifier = no of the control groups,  time.optimize.ssr = 1960:1969, time.plot = 1955:1997)
+
+
+
+
+ChatGPT: 
+- Purpose: The argument is used to define predictors that are not time-invariant, meaning they vary over time. For example, economic indicators like GDP or unemployment rates, which can change yearly, are commonly included as special predictors.
+
+- Structure: The argument takes a list, where each element is a list of three components:
+
+Name of the variable: A character string naming the variable you want to include as a special predictor.
+Aggregation function: A function (like mean, sum, median, etc.) that will be used to aggregate this predictor across specified time periods.
+Time periods: A vector of the specific time periods for which you want to aggregate this variable.
+
+Average of treated predictor
+```{r}
+dataprep.out$X1
+```
+
+
+Treated outcome pre-treatment period
+```{r}
+dataprep.out$Z1
+```
+
+
+Average control predictor
+```{r}
+dataprep.out$X0
+```
+
+control´s outcome pre-treatment period
+```{r}
+dataprep.out$Z0
+```
+
+```{r}
+synth.out <- synth(data.prep.obj = dataprep.out, method = "BFGS")#change BFGS by the most adapted algorithm, to get the normality
+```
+Wikipedia:"The Nelder–Mead method (also downhill simplex method, amoeba method, or polytope method) is a numerical method used to find the minimum or maximum of an objective function in a multidimensional space. It is a direct search method (based on function comparison) and is often applied to nonlinear optimization problems for which derivatives may not be known."
+
+"The Nelder Mead tends to be more successful in estimating the means for all locations than BFGS algorithm, The Nelder Mead tends to be successful rather than BFGS
+algorithm in estimating the means of dependent variables
+count data with overdispersion. BFGS algorithm tends to
+have false convergence in estimating the means of them.
+GWMNB is complex and very time consuming, especially
+for the simulation study. Nelder mead is more robust related
+to the initial value, but it is slower than the BFGS algorithm.
+Therefore, this research encourages to find out the fast and
+robust algorithms for future studies of geographically
+weighted multivariate. The Bayesian or modification of
+BFGS can be alternative methods for the next studies" (Yuliani et al.)
+
+"Numerical method like quasi newton BFGS is
+commonly used to maximize the Box-Cox function because this method has fast convergence property but it may fail
+to convergence in some circumstance. In other hand, direct optimization algorithm like Nelder Mead may still be
+convergence in case which quasi newton BFGS fail to convergence but this algorithm generally has slower
+convergence property. "" Generally quasi newton BFGS perform more efficient than
+Nelder Mead algorithm in terms of number of functions evaluations and number of iteration. However,
+the time differences among those two algorithm is slightly different. Simulation using SUSENAS’s data
+result in condition where Nelder Mead algorithm is more efficient than quasi-newton BFGS in case of
+multivariate data transformation. From the simulation, we can conclude that generally quasi newton
+BFGS perform more efficient than Nelder Mead when applied in Box-Cox transformation formula.
+However the time elapsed and evaluation function difference between the two algorithm sometime are so
+small and become negligible. Therefore, both algorithm can be used side by side to overcome the
+weakness of each method, then case which failed to convergent can be minimalized." (Saputra, Angorowatti et al.)
+
+BFGS: For smooth non-linear function
+
+In particular, in the synth() function we solve for a W ∗ that minimizes  ‖X1 − X0W ‖V = √(X1 − X0W )′V (X1 − X0W ) (1)  where V is defined as some (k × k) symmetric and positive semidefinite matrix. The V matrix is introduced to allow different weights to the variables in X0 and X1 depending on their predictive power on the outcome. An optimal choice of V assigns weights that minimize the mean square error of the synthetic control estimator, that is the expectation of (Y1 − Y0W ∗)′(Y1 − Y0W ∗).
+
+Then V ∗ is chosen to minimize  arg min  V ∈V(Z1 − Z0W ∗(V ))′(Z1 − Z0W ∗(V ))where V is the set of all positive definite and diagonal matrices and the weights for the synthetic control are given by W ∗. synth() solves a nested optimization problem that minimizes equation (2), for W ∗(V ) given by equation (1).
+
+
+
+```{r}
+synth.tables <- synth.tab(dataprep.res = dataprep.out,synth.res = synth.out)
+```
+
+
+Table with the comparison treated and control
+```{r}
+synth.tables$tab.pred
+```
+Weight added to the controls
+```{r}
+synth.tables$tab.w
+```
+V weight added to the controls
+```{r}
+synth.tables$tab.v
+```
+Graph diff treatment control
+```{r}
+path.plot(synth.res = synth.out, dataprep.res = dataprep.out,Ylab = "real per-capita GDP (1986 USD, thousand)", Xlab = "year",Ylim = c(0, 12), Legend = c("Basque country","synthetic Basque country"), Legend.position = "bottomright")
+```
+
+var of the treatment
+```{r}
+gaps.plot(synth.res = synth.out, dataprep.res = dataprep.out,Ylab = "gap in real per-capita GDP (1986 USD, thousand)", Xlab = "year",Ylim = c(-1.5, 1.5), Main = NA)
+```
+
+You can run placebo test using one control as treatment ( remove the real treatment)
